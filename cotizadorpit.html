@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Avanzado IA - Pack In Time</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Remove arrows from number inputs */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Toggle Switch Styles */
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 26px; width: 26px;
+            left: 4px; bottom: 4px; background-color: white;
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #4ade80; }
+        input:focus + .slider { box-shadow: 0 0 1px #4ade80; }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Cotizador Pack In Time</h1>
+            <p class="text-slate-600 mt-1">Precios Oficiales - Noviembre 2025</p>
+        </header>
+
+        <!-- Product List Container -->
+        <div id="product-list" class="space-y-6"></div>
+
+        <!-- Custom Product Section -->
+        <section class="mt-6 bg-white p-5 rounded-xl shadow-md border-2 border-dashed border-slate-300">
+            <h3 class="text-xl font-bold text-slate-900 mb-4">Agregar Producto Personalizado</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-medium text-slate-600">Nombre del Producto</label>
+                    <input type="text" id="custom-prod-name" placeholder="Ej: Caja especial" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-slate-600">Precio Neto por Caja</label>
+                    <input type="number" id="custom-prod-price" placeholder="Ej: 15000" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-slate-600">Unidades por Caja</label>
+                    <input type="number" id="custom-prod-units" placeholder="Ej: 6" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                 <div>
+                    <label class="text-sm font-medium text-slate-600">Kilos Netos por Caja</label>
+                    <input type="number" id="custom-prod-kg" placeholder="Ej: 10.2" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-sm font-medium text-slate-600">Cantidad</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="custom-prod-quantity" placeholder="0" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                        <select id="custom-prod-unit" class="custom-prod-input mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition h-[50px]">
+                            <option value="cajas">Cajas</option>
+                            <option value="unidades">Unidades</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quote Summary Section -->
+        <section id="summary" class="mt-8 bg-white p-6 rounded-xl shadow-md">
+            <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-2xl font-bold text-slate-900">Resumen y Envío</h2>
+                 <div class="flex items-center space-x-3">
+                    <button id="optimize-button" class="text-sm bg-indigo-100 text-indigo-700 font-semibold py-1 px-3 rounded-full hover:bg-indigo-200 transition-all disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed">
+                        ✨ Optimizar
+                    </button>
+                    <span class="font-semibold text-slate-700">Promoción 10%</span>
+                    <label class="switch">
+                        <input type="checkbox" id="promotion-toggle">
+                        <span class="slider"></span>
+                    </label>
+                 </div>
+            </div>
+            
+            <div class="mb-5">
+                <label for="shipping-cost" class="font-semibold text-slate-700">Costo de Envío (Neto):</label>
+                <input type="number" id="shipping-cost" placeholder="Ingresar costo neto del envío" class="w-full mt-1 p-2 text-lg font-bold border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+            </div>
+            
+            <div class="space-y-3 text-lg border-t pt-4">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Subtotal Neto:</span>
+                    <span id="summary-subtotal-neto" class="font-semibold text-slate-800">$0</span>
+                </div>
+                <div id="discount-row" class="flex justify-between hidden">
+                    <span class="text-green-600">Descuento (10%):</span>
+                    <span id="summary-discount" class="font-semibold text-green-600">-$0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">IVA Total (19%):</span>
+                    <span id="summary-iva-total" class="font-semibold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between items-center border-t pt-3 mt-3">
+                    <span class="text-xl font-bold text-slate-900">TOTAL:</span>
+                    <span id="summary-total" class="text-2xl font-bold text-blue-600">$0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Actions Section -->
+        <section class="mt-8">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Acciones</h2>
+            <textarea id="whatsapp-output" readonly class="w-full h-64 p-4 bg-slate-200 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-slate-700"></textarea>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <button id="copy-button" class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 shadow-lg transition-transform transform active:scale-95">
+                    Copiar Cotización
+                </button>
+                <button id="gemini-button" class="w-full bg-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-purple-700 shadow-lg transition-transform transform active:scale-95 disabled:bg-slate-400">
+                    ✨ Argumentario IA
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Gemini Modal -->
+    <div id="gemini-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="modal-container bg-white w-full max-w-lg rounded-xl shadow-2xl transform scale-95 transition-all duration-300">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 id="modal-title" class="text-2xl font-bold text-slate-900">Asistente IA ✨</h2>
+                    <button id="close-modal-button" class="text-slate-500 hover:text-slate-800 text-3xl leading-none">&times;</button>
+                </div>
+                <div id="modal-content" class="min-h-[200px]"></div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="copy-pitch-button" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 transition-colors">Copiar</button>
+                    <button id="close-modal-button-2" class="bg-slate-200 text-slate-800 font-semibold py-2 px-5 rounded-lg hover:bg-slate-300">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const IVA_RATE = 0.19;
+        const DISCOUNT_RATE = 0.10;
+        const productos = [
+          {
+            id: 'film_transparente',
+            nombre: 'Stretch film transparente 2kg',
+            detalles: 'Caja con 6 unidades. 22 micrones.',
+            neto_kg_caja: 10.2,
+            unidades_por_caja: 6,
+            precios: [
+              { min: 1, max: 3, valor: 25140 },
+              { min: 4, max: 6, valor: 24540 },
+              { min: 7, max: 10, valor: 23940 },
+              { min: 11, max: 14, valor: 23340 },
+              { min: 15, max: 44, valor: 22749 },
+              { min: 45, max: 89, valor: 22140 },
+              { min: 90, max: 99, valor: 21540 },
+              { min: 100, max: Infinity, valor: 20940 }
+            ]
+          },
+          {
+            id: 'film_negro',
+            nombre: 'Stretch film negro 2kg',
+            detalles: 'Caja con 6 unidades. 22 micrones ultraresistente.',
+            neto_kg_caja: 10.2,
+            unidades_por_caja: 6,
+            precios: [
+              { min: 1, max: 19, valor: 26550 }, // UPDATED PRICE TIER
+              { min: 20, max: Infinity, valor: 23700 } // UPDATED PRICE TIER
+            ]
+          },
+          {
+            id: 'cinta_embalaje',
+            nombre: 'Cinta de embalaje (caja)',
+            detalles: 'Caja con 48 unidades de 100m. 47mm ancho, 50 micrones.',
+            neto_kg_caja: null,
+            unidades_por_caja: 48,
+            precios: [
+              { min: 1, max: 3, valor: 42960 },
+              { min: 4, max: 6, valor: 42480 },
+              { min: 7, max: 10, valor: 41520 },
+              { min: 11, max: 14, valor: 38160 },
+              { min: 15, max: 44, valor: 37080 },
+              { min: 45, max: Infinity, valor: 36000 }
+            ]
+          }
+        ];
+
+        let currentQuoteItems = [];
+
+        // --- HELPERS ---
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(Math.round(value));
+        }
+
+        function getPriceForQuantity(product, quantity) {
+            const customPriceInput = document.getElementById(`custom-price-${product.id}`);
+            const customPrice = customPriceInput ? (parseFloat(customPriceInput.value) || 0) : 0;
+
+            if (customPrice > 0) {
+                customPriceInput.classList.add('bg-amber-100', 'border-amber-400');
+                return customPrice;
+            } else if (customPriceInput) {
+                customPriceInput.classList.remove('bg-amber-100', 'border-amber-400');
+            }
+
+            if (quantity <= 0) return 0;
+            
+            // Interpolation logic for Transparent Film (45-90 boxes)
+            if (product.id === 'film_transparente') {
+                const lowerTier = product.precios.find(p => p.min === 45);
+                const upperTier = product.precios.find(p => p.min === 90);
+                if (lowerTier && upperTier && quantity >= lowerTier.min && quantity < upperTier.min) {
+                    const min_qty = lowerTier.min;
+                    const max_qty = upperTier.min;
+                    const min_price = lowerTier.valor;
+                    const max_price = upperTier.valor;
+                    return min_price + (quantity - min_qty) * (max_price - min_price) / (max_qty - min_qty);
+                }
+            }
+            const priceTier = product.precios.find(p => quantity >= p.min && quantity <= p.max);
+            return priceTier ? priceTier.valor : 0;
+        }
+
+        // --- CALCULATION LOGIC ---
+        function calculateAndRenderQuote() {
+            const dom = getDomElements();
+            let subtotalProductosNeto = 0;
+            let totalNetoKg = 0;
+            let totalUnidades = 0;
+            const itemsCotizados = [];
+
+            // Process Standard Products
+            productos.forEach(product => {
+                const quantityInput = document.getElementById(`quantity-${product.id}`);
+                const unitSelector = document.getElementById(`unit-${product.id}`);
+                const pricePerKgEl = document.getElementById(`price-per-kg-${product.id}`);
+                
+                const quantity = parseInt(quantityInput.value, 10) || 0;
+                const unit = unitSelector.value;
+                let unitPrice = 0, subtotalForItem = 0, effectiveBoxes = 0;
+
+                if (quantity > 0) {
+                    if (unit === 'unidades') {
+                        effectiveBoxes = Math.ceil(quantity / product.unidades_por_caja);
+                        const pricePerBox = getPriceForQuantity(product, effectiveBoxes);
+                        unitPrice = pricePerBox / product.unidades_por_caja;
+                        subtotalForItem = quantity * unitPrice;
+                        totalUnidades += quantity;
+                    } else { // unit is 'cajas'
+                        effectiveBoxes = quantity;
+                        unitPrice = getPriceForQuantity(product, effectiveBoxes);
+                        subtotalForItem = quantity * unitPrice;
+                        totalUnidades += quantity * (product.unidades_por_caja || 1);
+                    }
+                    
+                    subtotalProductosNeto += subtotalForItem;
+                    if (product.neto_kg_caja) totalNetoKg += effectiveBoxes * product.neto_kg_caja;
+
+                    itemsCotizados.push({ 
+                        nombre: product.nombre, detalles: product.detalles,
+                        cantidad: quantity, unidad: unit, precioUnitario: unitPrice, 
+                        neto_kg_caja: product.neto_kg_caja, unidades_por_caja: product.unidades_por_caja
+                    });
+                }
+                
+                const displayPriceForKg = (quantity > 0) ? getPriceForQuantity(product, effectiveBoxes) : getPriceForQuantity(product, 1);
+                if (pricePerKgEl && product.neto_kg_caja) {
+                    const pricePerKg = displayPriceForKg > 0 ? displayPriceForKg / product.neto_kg_caja : 0;
+                    pricePerKgEl.textContent = `${formatCurrency(pricePerKg)} / kg neto`;
+                }
+            });
+
+            // Process Custom Product
+            const customName = dom.customProdNameInput.value.trim();
+            const customPrice = parseFloat(dom.customProdPriceInput.value) || 0;
+            const customUnitsBox = parseInt(dom.customProdUnitsInput.value, 10) || 1;
+            const customKg = parseFloat(dom.customProdKgInput.value) || 0;
+            const customQty = parseInt(dom.customProdQuantityInput.value, 10) || 0;
+            const customUnit = dom.customProdUnitSelector.value;
+
+            if (customName && customPrice > 0 && customQty > 0) {
+                let subTotal = 0, displayP = 0, effBoxes = 0;
+                if (customUnit === 'unidades') {
+                    effBoxes = Math.ceil(customQty / customUnitsBox);
+                    displayP = customPrice / customUnitsBox;
+                    subTotal = customQty * displayP;
+                    totalUnidades += customQty;
+                } else {
+                    effBoxes = customQty;
+                    displayP = customPrice;
+                    subTotal = customQty * displayP;
+                    totalUnidades += customQty * customUnitsBox;
+                }
+                subtotalProductosNeto += subTotal;
+                if (customKg > 0) totalNetoKg += effBoxes * customKg;
+                itemsCotizados.push({
+                    nombre: customName, detalles: null, cantidad: customQty, unidad: customUnit,
+                    precioUnitario: displayP, neto_kg_caja: customKg > 0 ? customKg : null, unidades_por_caja: customUnitsBox
+                });
+            }
+
+            currentQuoteItems = itemsCotizados;
+            
+            // Promotion logic
+            const isPromo = dom.promotionToggle.checked;
+            const discountAmount = isPromo ? (subtotalProductosNeto * DISCOUNT_RATE) : 0;
+            const shippingNet = parseInt(dom.shippingCostInput.value, 10) || 0;
+            
+            const totalNetoTotal = (subtotalProductosNeto - discountAmount) + shippingNet;
+            const totalIva = totalNetoTotal * IVA_RATE;
+            const totalFinal = totalNetoTotal + totalIva;
+            
+            // Render UI
+            dom.summarySubtotalNetoEl.textContent = formatCurrency(totalNetoTotal);
+            dom.discountRow.classList.toggle('hidden', !isPromo);
+            dom.summaryDiscountEl.textContent = `-${formatCurrency(discountAmount)}`;
+            dom.summaryIvaTotalEl.textContent = formatCurrency(totalIva);
+            dom.summaryTotalEl.textContent = formatCurrency(totalFinal);
+            
+            updateWhatsAppText(itemsCotizados, subtotalProductosNeto, discountAmount, shippingNet, totalIva, totalFinal, totalNetoKg, totalUnidades);
+            updateAIButtons(dom);
+        }
+
+        function updateWhatsAppText(items, subProd, discount, shipping, iva, total, kg, units) {
+            const el = document.getElementById('whatsapp-output');
+            if (items.length === 0 && shipping === 0) {
+                el.value = 'Agrega productos o costo de envío para generar la cotización.';
+                return;
+            }
+            
+            let itemsText = items.map(item => {
+                let pkgDetail = '';
+                if (item.neto_kg_caja) {
+                    const boxPrice = item.unidad === 'cajas' ? item.precioUnitario : item.precioUnitario * item.unidades_por_caja;
+                    pkgDetail = ` (${formatCurrency(boxPrice / item.neto_kg_caja)}/kg neto)`;
+                }
+                const unitLabel = item.unidad === 'cajas' ? (item.cantidad === 1 ? 'caja' : 'cajas') : (item.cantidad === 1 ? 'unidad' : 'unidades');
+                const priceLabel = item.unidad === 'cajas' ? 'c/caja' : 'c/u';
+                const charact = item.detalles ? `\n_${item.detalles}_` : '';
+                return `📦 *${item.nombre}*${charact}\n- Cantidad: ${item.cantidad} ${unitLabel}\n- Precio: ${formatCurrency(item.precioUnitario)} ${priceLabel} + IVA${pkgDetail}`;
+            }).join('\n\n');
+
+            let qtySummary = `*Total Kilos Netos:* ${kg.toFixed(1)} kg\n*Total Unidades:* ${units}`;
+            let financeSummary = `*Subtotal Productos (Neto):* ${formatCurrency(subProd)}\n`;
+            if (shipping > 0) financeSummary += `*Costo Envío (Neto):* ${formatCurrency(shipping)}\n`;
+            if (discount > 0) financeSummary += `*Descuento Promocional (10%):* -${formatCurrency(discount)}\n`;
+            financeSummary += `*IVA Total (19%):* ${formatCurrency(iva)}\n*TOTAL:* *${formatCurrency(total)}*`;
+
+            el.value = `¡Hola! 👋 Aquí tienes tu cotización de Pack In Time:\n\n${itemsText}\n\n${qtySummary}\n--------------------\n${financeSummary}\n\n¡Quedo a tu disposición!`;
+        }
+
+        // --- GEMINI AI INTEGRATION ---
+        async function callGemini(prompt, dom) {
+            dom.modalContent.innerHTML = '<div class="flex justify-center items-center h-48"><div class="loader"></div></div>';
+            const apiKey = "";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const fetchWithRetry = async (retries = 5, delay = 1000) => {
+                try {
+                    const res = await fetch(url, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+                    });
+                    if (!res.ok) throw new Error();
+                    return await res.json();
+                } catch (e) {
+                    if (retries > 0) {
+                        await new Promise(r => setTimeout(r, delay));
+                        return fetchWithRetry(retries - 1, delay * 2);
+                    }
+                    throw new Error("No se pudo conectar con la IA.");
+                }
+            };
+
+            try {
+                const data = await fetchWithRetry();
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error al generar contenido.";
+                dom.modalContent.innerHTML = `<div class="text-slate-700 whitespace-pre-wrap">${responseText}</div>`;
+            } catch (e) { 
+                dom.modalContent.innerHTML = `<p class="text-red-500">Error: ${e.message}</p>`; 
+            }
+        }
+
+        // --- UI & DOM ---
+        function getDomElements() {
+            return {
+                productList: document.getElementById('product-list'),
+                summarySubtotalNetoEl: document.getElementById('summary-subtotal-neto'),
+                summaryIvaTotalEl: document.getElementById('summary-iva-total'),
+                summaryTotalEl: document.getElementById('summary-total'),
+                whatsappOutputEl: document.getElementById('whatsapp-output'),
+                copyButton: document.getElementById('copy-button'),
+                geminiButton: document.getElementById('gemini-button'),
+                optimizeButton: document.getElementById('optimize-button'),
+                geminiModal: document.getElementById('gemini-modal'),
+                modalTitle: document.getElementById('modal-title'),
+                modalContent: document.getElementById('modal-content'),
+                shippingCostInput: document.getElementById('shipping-cost'),
+                promotionToggle: document.getElementById('promotion-toggle'),
+                discountRow: document.getElementById('discount-row'),
+                summaryDiscountEl: document.getElementById('summary-discount'),
+                customProdNameInput: document.getElementById('custom-prod-name'),
+                customProdPriceInput: document.getElementById('custom-prod-price'),
+                customProdUnitsInput: document.getElementById('custom-prod-units'),
+                customProdKgInput: document.getElementById('custom-prod-kg'),
+                customProdQuantityInput: document.getElementById('custom-prod-quantity'),
+                customProdUnitSelector: document.getElementById('custom-prod-unit'),
+            };
+        }
+
+        function copyToClipboard(text, btn, msg) {
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.top = "-999px";
+            document.body.appendChild(ta); ta.select();
+            try {
+                if (document.execCommand('copy')) {
+                    const originalLabel = btn.textContent;
+                    btn.textContent = `✅ ${msg}`;
+                    setTimeout(() => btn.textContent = originalLabel, 2000);
+                }
+            } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        function updateAIButtons(dom) {
+            const isEmpty = currentQuoteItems.length === 0;
+            dom.geminiButton.disabled = isEmpty;
+            dom.optimizeButton.disabled = isEmpty;
+        }
+
+        function showModal(dom, title) {
+            dom.modalTitle.textContent = title;
+            dom.geminiModal.classList.remove('hidden');
+            setTimeout(() => { 
+                dom.geminiModal.classList.remove('opacity-0'); 
+                dom.geminiModal.querySelector('.modal-container').classList.remove('scale-95'); 
+            }, 10);
+        }
+
+        function hideModal(dom) {
+            dom.geminiModal.classList.add('opacity-0'); 
+            dom.geminiModal.querySelector('.modal-container').classList.add('scale-95');
+            setTimeout(() => dom.geminiModal.classList.add('hidden'), 300);
+        }
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const dom = getDomElements();
+
+            productos.forEach(p => {
+                const initialPricePerKg = (p.precios[0].valor / (p.neto_kg_caja || 1));
+                dom.productList.innerHTML += `
+                <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900">${p.nombre}</h3>
+                            <p class="text-slate-500 text-sm mt-1 mb-4">${p.detalles}</p>
+                        </div>
+                        <span id="price-per-kg-${p.id}" class="text-sm text-slate-500 font-medium">${p.neto_kg_caja ? formatCurrency(initialPricePerKg) + '/kg' : ''}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="quantity-${p.id}" placeholder="0" class="quantity-input w-full p-2 text-center text-lg font-bold border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition">
+                        <select id="unit-${p.id}" class="unit-selector p-2 border-2 border-slate-300 rounded-lg h-[50px]">
+                            <option value="cajas">Cajas</option>
+                            <option value="unidades">Unidades</option>
+                        </select>
+                    </div>
+                    <div class="mt-4">
+                        <label class="text-xs text-slate-500 font-semibold uppercase">Precio Neto Manual (Opcional)</label>
+                        <input type="number" id="custom-price-${p.id}" placeholder="Ej: 21500" class="custom-price-input w-full mt-1 p-2 text-sm border-2 border-slate-300 rounded-lg">
+                    </div>
+                </div>`;
+            });
+
+            const allInputs = [...document.querySelectorAll('input, select')];
+            allInputs.forEach(input => input.addEventListener('input', () => calculateAndRenderQuote()));
+
+            dom.copyButton.addEventListener('click', () => copyToClipboard(dom.whatsappOutputEl.value, dom.copyButton, 'Copiado'));
+            
+            dom.geminiButton.addEventListener('click', () => {
+                const prompt = `Actúa como asesor comercial de Pack In Time. El cliente cotizó: ${currentQuoteItems.map(i=>i.cantidad+' '+i.unidad+' de '+i.nombre).join(', ')}. Escribe un mensaje persuasivo para WhatsApp destacando el stock inmediato y la calidad industrial. Usa emojis. Máximo 2 párrafos.`;
+                showModal(dom, "Argumentario IA ✨");
+                callGemini(prompt, dom);
+            });
+
+            dom.optimizeButton.addEventListener('click', () => {
+                const scaleStr = JSON.stringify(productos.map(p=>({n:p.nombre, p:p.precios.map(t=>`De ${t.min} a ${t.max}: ${t.valor}`) })));
+                const prompt = `Como analista de precios, revisa esta cotización: ${currentQuoteItems.map(i=>i.cantidad+' '+i.unidad+' de '+i.nombre).join(', ')}.
+                Nuestra escala es: ${scaleStr}. 
+                Busca si agregando muy pocas unidades el cliente puede saltar a un tramo de precio mejor y terminar pagando menos o casi lo mismo pero llevando más. Explícalo de forma clara y amable.`;
+                showModal(dom, "Optimización Sugerida ✨");
+                callGemini(prompt, dom);
+            });
+
+            document.getElementById('close-modal-button').onclick = () => hideModal(dom);
+            document.getElementById('close-modal-button-2').onclick = () => hideModal(dom);
+            document.getElementById('copy-pitch-button').onclick = () => copyToClipboard(dom.modalContent.innerText, document.getElementById('copy-pitch-button'), "Copiado");
+
+            calculateAndRenderQuote();
+        });
+    </script>
+</body>
+</html>

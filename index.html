@@ -15,6 +15,10 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
+        
+        /* REGLA CRÍTICA: Asegura que 'hidden' funcione siempre, incluso si falla Tailwind */
+        .hidden { display: none !important; }
+
         /* Remove arrows from number inputs */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -59,6 +63,13 @@
     <!-- MAIN APP CONTENT (Hidden by default) -->
     <div id="app-content" class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8 hidden">
 
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Cotizador Pack In Time</h1>
+            <p class="text-slate-600 mt-1">Precios Oficiales - Noviembre 2025</p>
+        </header>
+
+        <div id="product-list" class="space-y-6"></div>
+
         <!-- Custom Product Section -->
         <section class="mt-6 bg-white p-5 rounded-xl shadow-md border-2 border-dashed border-slate-300">
             <h3 class="text-xl font-bold text-slate-900 mb-4">Agregar Producto Personalizado</h3>
@@ -71,12 +82,11 @@
                     <label class="text-sm font-medium text-slate-600">Precio Neto por Caja</label>
                     <input type="number" id="custom-prod-price" placeholder="Ej: 15000" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
-                <!-- NUEVO CAMPO DE DESCRIPCIÓN -->
+                <!-- CAMPO DE DESCRIPCIÓN -->
                 <div class="md:col-span-2">
                     <label class="text-sm font-medium text-slate-600">Descripción (Opcional)</label>
                     <input type="text" id="custom-prod-desc" placeholder="Ej: Medidas especiales, color rojo, etc." class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
-                <!-- FIN NUEVO CAMPO -->
                 <div>
                     <label class="text-sm font-medium text-slate-600">Unidades por Caja</label>
                     <input type="number" id="custom-prod-units" placeholder="Ej: 6" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
@@ -171,7 +181,7 @@
     </div>
 
     <script>
-        const ACCESS_CODE = "pack2026"; // CAMBIAR ESTO POR LA CLAVE DESEADA
+        const ACCESS_CODE = "pack2025"; 
 
         // --- DATA ---
         const IVA_RATE = 0.19;
@@ -302,9 +312,10 @@
                     const pricePerKg = displayPriceForKg > 0 ? displayPriceForKg / product.neto_kg_caja : 0;
                     pricePerKgEl.textContent = `${formatCurrency(pricePerKg)} / kg neto`;
                 }
-            // Process Custom Product
+            });
+
             const customName = dom.customProdNameInput.value.trim();
-            const customDesc = dom.customProdDescInput.value.trim(); // Capturar descripción
+            const customDesc = dom.customProdDescInput.value.trim();
             const customPrice = parseFloat(dom.customProdPriceInput.value) || 0;
             const customUnitsBox = parseInt(dom.customProdUnitsInput.value, 10) || 1;
             const customKg = parseFloat(dom.customProdKgInput.value) || 0;
@@ -327,7 +338,7 @@
                 subtotalProductosNeto += subTotal;
                 if (customKg > 0) totalNetoKg += effBoxes * customKg;
                 itemsCotizados.push({
-                    nombre: customName, detalles: customDesc || null, cantidad: customQty, unidad: customUnit, // Agregar detalles
+                    nombre: customName, detalles: customDesc || null, cantidad: customQty, unidad: customUnit,
                     precioUnitario: displayP, neto_kg_caja: customKg > 0 ? customKg : null, unidades_por_caja: customUnitsBox
                 });
             }
@@ -382,7 +393,7 @@
 
         async function callGemini(prompt, dom) {
             dom.modalContent.innerHTML = '<div class="flex justify-center items-center h-48"><div class="loader"></div></div>';
-            const apiKey = "";
+            const apiKey = ""; // API Key removed for security as per request context
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             
             const fetchWithRetry = async (retries = 3, delay = 1000) => {
@@ -430,7 +441,7 @@
                 discountRow: document.getElementById('discount-row'),
                 summaryDiscountEl: document.getElementById('summary-discount'),
                 customProdNameInput: document.getElementById('custom-prod-name'),
-                customProdDescInput: document.getElementById('custom-prod-desc'), // Nuevo elemento
+                customProdDescInput: document.getElementById('custom-prod-desc'), 
                 customProdPriceInput: document.getElementById('custom-prod-price'),
                 customProdUnitsInput: document.getElementById('custom-prod-units'),
                 customProdKgInput: document.getElementById('custom-prod-kg'),
@@ -474,12 +485,11 @@
             setTimeout(() => dom.geminiModal.classList.add('hidden'), 300);
         }
 
-        // --- AUTH & INIT ---
         function checkLogin() {
             const passInput = document.getElementById('login-pass');
             const errorMsg = document.getElementById('login-error');
             
-            if (passInput.value === ACCESS_CODE) {
+            if (passInput.value.trim() === ACCESS_CODE) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
             } else {
@@ -489,7 +499,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Login Logic
             const loginBtn = document.getElementById('login-btn');
             const passInput = document.getElementById('login-pass');
             
@@ -498,7 +507,6 @@
                 if (e.key === 'Enter') checkLogin();
             });
 
-            // App Logic
             const dom = getDomElements();
 
             productos.forEach(p => {

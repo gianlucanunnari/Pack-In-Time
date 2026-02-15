@@ -27,7 +27,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Toggle Switch Styles */
         .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -46,15 +45,19 @@
 </head>
 <body class="bg-slate-100 text-slate-800">
 
-    <div class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8">
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-800 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2">Acceso Restringido</h2>
+            <p class="text-slate-500 mb-6 text-sm">Ingresa la clave para acceder al cotizador.</p>
+            <input type="password" id="login-pass" placeholder="Contraseña" class="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-center text-lg">
+            <button id="login-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Entrar</button>
+            <p id="login-error" class="text-red-500 text-sm mt-3 hidden">Clave incorrecta.</p>
+        </div>
+    </div>
 
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Cotizador Pack In Time</h1>
-            <p class="text-slate-600 mt-1">Precios Oficiales -  2026</p>
-        </header>
-
-        <!-- Product List Container -->
-        <div id="product-list" class="space-y-6"></div>
+    <!-- MAIN APP CONTENT (Hidden by default) -->
+    <div id="app-content" class="container mx-auto max-w-2xl p-4 sm:p-6 md:p-8 hidden">
 
         <!-- Custom Product Section -->
         <section class="mt-6 bg-white p-5 rounded-xl shadow-md border-2 border-dashed border-slate-300">
@@ -68,6 +71,12 @@
                     <label class="text-sm font-medium text-slate-600">Precio Neto por Caja</label>
                     <input type="number" id="custom-prod-price" placeholder="Ej: 15000" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
+                <!-- NUEVO CAMPO DE DESCRIPCIÓN -->
+                <div class="md:col-span-2">
+                    <label class="text-sm font-medium text-slate-600">Descripción (Opcional)</label>
+                    <input type="text" id="custom-prod-desc" placeholder="Ej: Medidas especiales, color rojo, etc." class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <!-- FIN NUEVO CAMPO -->
                 <div>
                     <label class="text-sm font-medium text-slate-600">Unidades por Caja</label>
                     <input type="number" id="custom-prod-units" placeholder="Ej: 6" class="custom-prod-input w-full mt-1 p-2 text-lg border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
@@ -89,7 +98,6 @@
             </div>
         </section>
 
-        <!-- Quote Summary Section -->
         <section id="summary" class="mt-8 bg-white p-6 rounded-xl shadow-md">
             <div class="flex justify-between items-center mb-4">
                  <h2 class="text-2xl font-bold text-slate-900">Resumen y Envío</h2>
@@ -130,7 +138,6 @@
             </div>
         </section>
 
-        <!-- Actions Section -->
         <section class="mt-8">
             <h2 class="text-2xl font-bold mb-4 text-slate-900">Acciones</h2>
             <textarea id="whatsapp-output" readonly class="w-full h-64 p-4 bg-slate-200 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-slate-700"></textarea>
@@ -164,7 +171,9 @@
     </div>
 
     <script>
-        // --- CONSTANTS & DATA ---
+        const ACCESS_CODE = "pack2025"; // CAMBIAR ESTO POR LA CLAVE DESEADA
+
+        // --- DATA ---
         const IVA_RATE = 0.19;
         const DISCOUNT_RATE = 0.10;
         const productos = [
@@ -192,8 +201,8 @@
             neto_kg_caja: 10.2,
             unidades_por_caja: 6,
             precios: [
-              { min: 1, max: 19, valor: 26550 }, // UPDATED PRICE TIER
-              { min: 20, max: Infinity, valor: 23700 } // UPDATED PRICE TIER
+              { min: 1, max: 19, valor: 26550 },
+              { min: 20, max: Infinity, valor: 23700 }
             ]
           },
           {
@@ -215,7 +224,6 @@
 
         let currentQuoteItems = [];
 
-        // --- HELPERS ---
         function formatCurrency(value) {
             return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(Math.round(value));
         }
@@ -249,7 +257,6 @@
             return priceTier ? priceTier.valor : 0;
         }
 
-        // --- CALCULATION LOGIC ---
         function calculateAndRenderQuote() {
             const dom = getDomElements();
             let subtotalProductosNeto = 0;
@@ -257,7 +264,6 @@
             let totalUnidades = 0;
             const itemsCotizados = [];
 
-            // Process Standard Products
             productos.forEach(product => {
                 const quantityInput = document.getElementById(`quantity-${product.id}`);
                 const unitSelector = document.getElementById(`unit-${product.id}`);
@@ -274,7 +280,7 @@
                         unitPrice = pricePerBox / product.unidades_por_caja;
                         subtotalForItem = quantity * unitPrice;
                         totalUnidades += quantity;
-                    } else { // unit is 'cajas'
+                    } else {
                         effectiveBoxes = quantity;
                         unitPrice = getPriceForQuantity(product, effectiveBoxes);
                         subtotalForItem = quantity * unitPrice;
@@ -296,10 +302,9 @@
                     const pricePerKg = displayPriceForKg > 0 ? displayPriceForKg / product.neto_kg_caja : 0;
                     pricePerKgEl.textContent = `${formatCurrency(pricePerKg)} / kg neto`;
                 }
-            });
-
             // Process Custom Product
             const customName = dom.customProdNameInput.value.trim();
+            const customDesc = dom.customProdDescInput.value.trim(); // Capturar descripción
             const customPrice = parseFloat(dom.customProdPriceInput.value) || 0;
             const customUnitsBox = parseInt(dom.customProdUnitsInput.value, 10) || 1;
             const customKg = parseFloat(dom.customProdKgInput.value) || 0;
@@ -322,14 +327,13 @@
                 subtotalProductosNeto += subTotal;
                 if (customKg > 0) totalNetoKg += effBoxes * customKg;
                 itemsCotizados.push({
-                    nombre: customName, detalles: null, cantidad: customQty, unidad: customUnit,
+                    nombre: customName, detalles: customDesc || null, cantidad: customQty, unidad: customUnit, // Agregar detalles
                     precioUnitario: displayP, neto_kg_caja: customKg > 0 ? customKg : null, unidades_por_caja: customUnitsBox
                 });
             }
 
             currentQuoteItems = itemsCotizados;
             
-            // Promotion logic
             const isPromo = dom.promotionToggle.checked;
             const discountAmount = isPromo ? (subtotalProductosNeto * DISCOUNT_RATE) : 0;
             const shippingNet = parseInt(dom.shippingCostInput.value, 10) || 0;
@@ -338,7 +342,6 @@
             const totalIva = totalNetoTotal * IVA_RATE;
             const totalFinal = totalNetoTotal + totalIva;
             
-            // Render UI
             dom.summarySubtotalNetoEl.textContent = formatCurrency(totalNetoTotal);
             dom.discountRow.classList.toggle('hidden', !isPromo);
             dom.summaryDiscountEl.textContent = `-${formatCurrency(discountAmount)}`;
@@ -377,13 +380,12 @@
             el.value = `¡Hola! 👋 Aquí tienes tu cotización de Pack In Time:\n\n${itemsText}\n\n${qtySummary}\n--------------------\n${financeSummary}\n\n¡Quedo a tu disposición!`;
         }
 
-        // --- GEMINI AI INTEGRATION ---
         async function callGemini(prompt, dom) {
             dom.modalContent.innerHTML = '<div class="flex justify-center items-center h-48"><div class="loader"></div></div>';
             const apiKey = "";
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             
-            const fetchWithRetry = async (retries = 5, delay = 1000) => {
+            const fetchWithRetry = async (retries = 3, delay = 1000) => {
                 try {
                     const res = await fetch(url, { 
                         method: 'POST', 
@@ -410,7 +412,6 @@
             }
         }
 
-        // --- UI & DOM ---
         function getDomElements() {
             return {
                 productList: document.getElementById('product-list'),
@@ -429,6 +430,7 @@
                 discountRow: document.getElementById('discount-row'),
                 summaryDiscountEl: document.getElementById('summary-discount'),
                 customProdNameInput: document.getElementById('custom-prod-name'),
+                customProdDescInput: document.getElementById('custom-prod-desc'), // Nuevo elemento
                 customProdPriceInput: document.getElementById('custom-prod-price'),
                 customProdUnitsInput: document.getElementById('custom-prod-units'),
                 customProdKgInput: document.getElementById('custom-prod-kg'),
@@ -472,8 +474,31 @@
             setTimeout(() => dom.geminiModal.classList.add('hidden'), 300);
         }
 
-        // --- INIT ---
+        // --- AUTH & INIT ---
+        function checkLogin() {
+            const passInput = document.getElementById('login-pass');
+            const errorMsg = document.getElementById('login-error');
+            
+            if (passInput.value === ACCESS_CODE) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            } else {
+                errorMsg.classList.remove('hidden');
+                passInput.value = '';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            // Login Logic
+            const loginBtn = document.getElementById('login-btn');
+            const passInput = document.getElementById('login-pass');
+            
+            loginBtn.addEventListener('click', checkLogin);
+            passInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkLogin();
+            });
+
+            // App Logic
             const dom = getDomElements();
 
             productos.forEach(p => {
@@ -530,4 +555,3 @@
     </script>
 </body>
 </html>
-
